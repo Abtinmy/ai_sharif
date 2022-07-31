@@ -1,0 +1,3 @@
+delete server.log first
+
+java -jar hideandseek-0.0.7.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python/dist/client resources/game.yml resources/map.json

@@ -1,0 +1,61 @@
+agents:
+  - id: 1
+    nodeId: 1
+    token: "token_1"
+    team: FIRST
+    type: THIEF
+    balance: 1000.0
+  - id: 2
+    nodeId: 1
+    token: "token_2"
+    team: FIRST
+    type: POLICE
+    balance: 1000.0
+  - id: 3
+    nodeId: 2
+    token: "token_3"
+    team: SECOND
+    type: THIEF
+    balance: 1000.0
+  - id: 4
+    nodeId: 1
+    token: "token_4"
+    team: SECOND
+    type: POLICE
+    balance: 1000.0
+
+income:
+  policeIncomeEachTurn: 100
+  thiefIncomeEachTurn: 100
+
+graph:
+  paths:
+    - id: 1
+      firstNodeId: 1
+      secondNodeId: 2
+      price: 10.1
+    - id: 2
+      firstNodeId: 2
+      secondNodeId: 4
+      price: 10.1
+    - id: 3
+      firstNodeId: 2
+      secondNodeId: 3
+      price: 50.0
+  nodes:
+    - id: 1
+    - id: 2
+    - id: 3
+    - id: 4
+
+turnSettings:
+  maxTurns: 5
+
+
+  visibleTurns:
+    - 2
+    - 3
+
+chatSettings:
+  chatBoxMaxSize: 10
+  chatCostPerCharacter: 1
