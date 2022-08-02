@@ -1,5 +1,5 @@
 *.spec
-*.logs
+*.log
 AIC22-Client-Python/build/*
 AIC22-Client-Python/dist/*
 
