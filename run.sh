@@ -1,4 +1,5 @@
 rm ./server/logs/*
+rm ./server/log.log
 echo '=====logs deleted====='
 
 cd ./AIC22-Client-Python/

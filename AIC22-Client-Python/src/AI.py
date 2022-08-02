@@ -2,11 +2,16 @@ from src.client import GameClient
 from src.model import GameView
 from src import hide_and_seek_pb2
 import random
-import pdb
 
 
 INF = float('inf')
 
+
+def write(txt):
+    f = open("log.log", "a")
+    f.write(txt)
+    f.write('\n')
+    f.close()
 
 def convert_paths_to_adj(paths, n):
 
@@ -149,12 +154,15 @@ class AI:
             if h[adj_id] < min_h:
                 min_h = h[adj_id]
                 move_to = adj_id
-        pdb.set_trace()
 
+        write(str(h))
+        
         if min_h != INF:
+            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(move_to))
             return move_to
         else:
-            return current_node  # Stay?
+            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(current_node))
+            return current_node  # Stay
 
     def police_move_ai(self, view: GameView) -> int:
         nodes_count = len(view.config.graph.nodes)
@@ -184,7 +192,11 @@ class AI:
                 min_h = h[adj_id]
                 move_to = adj_id
 
+        write(str(h))
+
         if min_h != INF:
+            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(move_to))
             return move_to
         else:
+            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(current_node))
             return current_node  # Stay
