@@ -1,6 +1,9 @@
 from src.client import GameClient
 from src.model import GameView
 from src import hide_and_seek_pb2
+import random
+import pdb
+
 
 INF = float('inf')
 
@@ -35,9 +38,10 @@ def floyd_warshall(paths, n):
 
 
 def get_thief_starting_node(view: GameView) -> int:
-
+    # randome gheire tekrari
+    return random.randint(1, len(view.config.graph.nodes))
     # write your code here
-    return 2
+    # return 2
 
 
 class Phone:
@@ -145,6 +149,7 @@ class AI:
             if h[adj_id] < min_h:
                 min_h = h[adj_id]
                 move_to = adj_id
+        pdb.set_trace()
 
         if min_h != INF:
             return move_to
@@ -160,6 +165,7 @@ class AI:
             self.degrees = self.get_degrees(view)
 
         h = {}
+
         current_node = view.viewer.node_id
         # for pth in view.config.graph.paths:
         #     if pth.first_node_id == current_node:
