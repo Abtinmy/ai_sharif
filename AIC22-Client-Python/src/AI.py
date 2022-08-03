@@ -45,7 +45,7 @@ def floyd_warshall(paths, n):
 
 
 def get_thief_starting_node(view: GameView) -> int:
-    return random.randint(1, len(view.config.graph.nodes)+1)
+    return random.randint(2, len(view.config.graph.nodes)+1)
 
     # i = int(len(view.config.graph.nodes)/len(AllThieves?!))
     # st_node = random.randint(i*view.id, i*view.id+i)
