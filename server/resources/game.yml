@@ -18,7 +18,7 @@ agents:
     type: THIEF
     balance: 1000.0
   - id: 4
-    nodeId: 1
+    nodeId: 2
     token: "token_4"
     team: SECOND
     type: POLICE

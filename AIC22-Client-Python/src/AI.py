@@ -20,13 +20,23 @@ def convert_paths_to_adj(paths, n):
     inf = float('inf')
     adj = [[inf for j in range(n+1)] for i in range(n+1)]
 
+    max_price = float('-inf')
     for path in paths:
         adj[path.first_node_id][path.second_node_id] = path.price
         adj[path.second_node_id][path.first_node_id] = path.price
+        if path.price > max_price:
+            max_price = path.price
 
     for i in range(n+1):
         adj[i][i] = 0
 
+    # Price normalization
+    if max_price != 0:
+        for i in range(n+1):
+            for j in range(n+1):
+                adj[i][j] /= max_price
+
+    write(str(adj))
     return adj
 
 
@@ -129,8 +139,8 @@ class AI:
         # self.phone.send_message(message)
         h = {}      # h(next) = cost * (prob. Of polices)
         current_node = view.viewer.node_id
-
         for adj_id in range(1, nodes_count+1):
+            # write(f"{current_node} !!! {adj_id}")
             if self.cost[current_node][adj_id] != INF:
                 h[adj_id] = INF
                 if self.degrees[adj_id] != 1 and view.balance > self.cost[current_node][adj_id]:
