@@ -5,6 +5,7 @@ import random
 
 
 INF = float('inf')
+PR_STAY = 3
 
 
 def write(txt):
@@ -12,6 +13,7 @@ def write(txt):
     f.write(txt)
     f.write('\n')
     f.close()
+
 
 def convert_paths_to_adj(paths, n):
 
@@ -43,10 +45,12 @@ def floyd_warshall(paths, n):
 
 
 def get_thief_starting_node(view: GameView) -> int:
-    # randome gheire tekrari
-    return random.randint(1, len(view.config.graph.nodes))
-    # write your code here
-    # return 2
+    return random.randint(1, len(view.config.graph.nodes)+1)
+
+    # i = int(len(view.config.graph.nodes)/len(AllThieves?!))
+    # st_node = random.randint(i*view.id, i*view.id+i)
+    # write(str(view.id) + " -> " + str(st_node))
+    # return st_node
 
 
 class Phone:
@@ -62,13 +66,6 @@ class AI:
         self.phone = phone
         self.cost = None
         self.degrees = None
-
-    # def get_degree(self, node_id, view: GameView) -> int:
-    #     d = 0
-    #     for adj in view.config.graph.paths:
-    #         if adj.first_node_id == node_id:
-    #             d += 1
-    #     return d
 
     def get_degrees(self, view: GameView) -> list:
         nodes_count = len(view.config.graph.nodes)
@@ -98,8 +95,7 @@ class AI:
             self.degrees = self.get_degrees(view)
 
         pr = 0.001
-        # for pth in view.config.graph.paths:
-        #     if pth.second_node_id == node_id:  # destination is current node
+
         nodes_count = len(view.config.graph.nodes)
         for adj_id in range(1, nodes_count+1):
             if self.cost[node_id][adj_id]:
@@ -109,13 +105,10 @@ class AI:
 
     def pr_theives(self, node_id, view: GameView) -> float:
         pr = 1
-        # vt = [t for t in view.config.visible_turns]
+
         if view.turn.turn_number not in view.config.visible_turns:
             return pr
 
-        # for pth in view.config.graph.paths:
-        #     if pth.second_node_id == node_id:
-        #   # destination is current node
         nodes_count = len(view.config.graph.nodes)
         for adj_id in range(1, nodes_count+1):
             if self.cost[node_id][adj_id]:
@@ -130,38 +123,44 @@ class AI:
                 view.config.graph.paths, nodes_count)
         if self.degrees is None:
             self.degrees = self.get_degrees(view)
-        # write your code here
         # message = ''
         # for m in range(len(view.visible_agents)):
         #     message = message  + '0'
         # self.phone.send_message(message)
         h = {}      # h(next) = cost * (prob. Of polices)
         current_node = view.viewer.node_id
-        # for pth in view.config.graph.paths:
-        #     if pth.first_node_id == current_node:
 
         for adj_id in range(1, nodes_count+1):
             if self.cost[current_node][adj_id] != INF:
-                # adj_id = pth.first_node_id
                 h[adj_id] = INF
                 if self.degrees[adj_id] != 1 and view.balance > self.cost[current_node][adj_id]:
-                    h[adj_id] = self.cost[current_node][adj_id] * \
+                    h[adj_id] = (self.cost[current_node][adj_id]) * \
                         self.pr_police(adj_id, view)
 
         min_h = INF
         move_to = -1
         for adj_id in h.keys():
+            # be ehtemale 1/PR-1 bemoone sare jash
+            if h[adj_id] == 0 and random.randint(0, PR_STAY-1):
+                continue
             if h[adj_id] < min_h:
-                min_h = h[adj_id]
-                move_to = adj_id
+                # age mosavi shod, ba ehtemale 1/2 bere ya bemoone
+                if h[adj_id] == min_h and random.randint(0, 1):
+                    min_h = h[adj_id]
+                    move_to = adj_id
+                else:
+                    min_h = h[adj_id]
+                    move_to = adj_id
 
-        write(str(h))
-        
+        write("Thief: "+str(h))
+
         if min_h != INF:
-            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(move_to))
+            write("Thief with id " + str(view.viewer.id) + " in node " +
+                  str(current_node) + " move to " + str(move_to))
             return move_to
         else:
-            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(current_node))
+            write("Thief with id " + str(view.viewer.id) + " in node " +
+                  str(current_node) + " move to " + str(current_node))
             return current_node  # Stay
 
     def police_move_ai(self, view: GameView) -> int:
@@ -172,31 +171,38 @@ class AI:
         if self.degrees is None:
             self.degrees = self.get_degrees(view)
 
-        h = {}
-
+        h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
         current_node = view.viewer.node_id
-        # for pth in view.config.graph.paths:
-        #     if pth.first_node_id == current_node:
+
         for adj_id in range(1, nodes_count+1):
             if self.cost[current_node][adj_id] != INF:
-                # adj_id = pth.first_node_id
                 h[adj_id] = INF
                 if self.degrees[adj_id] != 1 and view.balance > self.cost[current_node][adj_id]:
-                    h[adj_id] = self.cost[current_node][adj_id] * self.pr_police(adj_id, view) \
-                        * (1-self.pr_theives(adj_id, view)) / self.degrees[adj_id]
+                    h[adj_id] = (self.cost[current_node][adj_id]) * self.pr_police(adj_id, view) \
+                        / (self.pr_theives(adj_id, view) * self.degrees[adj_id])
 
         min_h = INF
         move_to = -1
         for adj_id in h.keys():
+            # be ehtemale 1/PR bemoone sare jash
+            if h[adj_id] == 0 and random.randint(0, PR_STAY-1):
+                continue
             if h[adj_id] < min_h:
-                min_h = h[adj_id]
-                move_to = adj_id
+                # age mosavi shod, ba ehtemale 1/2 bere ya bemoone
+                if h[adj_id] == min_h and random.randint(0, 1):
+                    min_h = h[adj_id]
+                    move_to = adj_id
+                else:
+                    min_h = h[adj_id]
+                    move_to = adj_id
 
-        write(str(h))
+        write("Police: " + str(h))
 
         if min_h != INF:
-            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(move_to))
+            write("Police with id " + str(view.viewer.id) + " in node " +
+                  str(current_node) + " move to " + str(move_to))
             return move_to
         else:
-            write("agent with id " + str(view.viewer.id) +" in node " + str(current_node) + " move to " + str(current_node))
+            write("Police with id " + str(view.viewer.id) + " in node " +
+                  str(current_node) + " move to " + str(current_node))
             return current_node  # Stay
