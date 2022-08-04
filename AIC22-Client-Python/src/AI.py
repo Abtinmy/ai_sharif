@@ -144,7 +144,7 @@ class AI:
         for adj_id in range(1, nodes_count+1):
             h[adj_id] = INF
             # write(f"{current_node} !!! {adj_id}")
-            if self.cost[current_node][adj_id] != INF:
+            if self.cost[current_node][adj_id] != INF and adj_id != current_node:
                 h[adj_id] = self.pr_police(adj_id, view)
             #     h[adj_id] = INF
             #     if self.degrees[adj_id] != 1 and view.balance > self.cost[current_node][adj_id]:
@@ -198,7 +198,7 @@ class AI:
         current_threat = self.pr_theives(current_node, view)
         for adj_id in range(1, nodes_count+1):
             h[adj_id] = INF
-            if self.cost[current_node][adj_id] != INF:
+            if self.cost[current_node][adj_id] != INF and adj_id != current_node:
                 h[adj_id] = self.pr_theives(adj_id, view)
                 # and self.degree == 1
                 # if view.balance > self.cost[current_node][adj_id]:
