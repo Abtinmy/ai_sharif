@@ -87,21 +87,31 @@ class AI:
                     degrees[n] += 1
         return degrees
 
-    def police_count(self, node_id, view: GameView) -> int:
+    def police_count(self, node_id, team, view: GameView) -> int:
         pc = 0
         for vu in view.visible_agents:
-            if not vu.is_dead and vu.node_id == node_id and vu.agent_type == hide_and_seek_pb2.AgentType.POLICE:
+            if (
+                    not vu.is_dead and
+                    vu.node_id == node_id and
+                    vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and
+                    vu.team == team
+                ):
                 pc += 1
         return pc
 
-    def thieves_count(self, node_id, view: GameView) -> int:
+    def thieves_count(self, node_id, team, view: GameView) -> int:
         tc = 0
         for vu in view.visible_agents:
-            if not vu.is_dead and vu.node_id == node_id and vu.agent_type == hide_and_seek_pb2.AgentType.THIEF:
+            if (
+                    not vu.is_dead and
+                    vu.node_id == node_id and
+                    vu.agent_type == hide_and_seek_pb2.AgentType.THIEF and
+                    vu.team == team
+                ):
                 tc += 1
         return tc
 
-    def pr_police(self, node_id, view: GameView) -> float:
+    def pr_police(self, node_id, team_type: str, view: GameView) -> float:
         if self.degrees is None:
             self.degrees = self.get_degrees(view)
 
@@ -110,11 +120,19 @@ class AI:
         nodes_count = len(view.config.graph.nodes)
         for adj_id in range(1, nodes_count+1):
             if self.cost[node_id][adj_id] != INF:
-                pr += self.police_count(adj_id, view) / \
-                    self.degrees[adj_id]
+                p_count = None
+                if team_type == "same":
+                    p_count = self.police_count(adj_id, view.viewer.team, view)
+                else:
+                    if view.viewer.team == hide_and_seek_pb2.Team.FIRST:
+                        p_count = self.police_count(adj_id, hide_and_seek_pb2.Team.SECOND, view)
+                    else:
+                        p_count = self.police_count(adj_id, hide_and_seek_pb2.Team.FIRST, view)
+
+                pr += p_count / self.degrees[adj_id]
         return pr
 
-    def pr_theives(self, node_id, view: GameView) -> float:
+    def pr_theives(self, node_id, team_type: str, view: GameView) -> float:
         pr = 1
 
         if view.turn.turn_number not in view.config.visible_turns:
@@ -123,8 +141,16 @@ class AI:
         nodes_count = len(view.config.graph.nodes)
         for adj_id in range(1, nodes_count+1):
             if self.cost[node_id][adj_id] != INF:
-                pr += self.thieves_count(adj_id, view) / \
-                    self.degrees[adj_id]
+                t_count = None
+                if team_type == "same":
+                    t_count = self.thieves_count(adj_id, view.viewer.team, view)
+                else:
+                    if view.viewer.team == hide_and_seek_pb2.Team.FIRST:
+                        t_count = self.thieves_count(adj_id, hide_and_seek_pb2.Team.SECOND, view)
+                    else:
+                        t_count = self.thieves_count(adj_id, hide_and_seek_pb2.Team.FIRST, view)
+
+                pr += t_count / self.degrees[adj_id]
         return pr
 
     def thief_move_ai(self, view: GameView) -> int:
@@ -140,12 +166,12 @@ class AI:
         # self.phone.send_message(message)
         h = {}      # h(next) = cost * (prob. Of polices)
         current_node = view.viewer.node_id
-        current_threat = self.pr_police(current_node, view)
+        current_threat = self.pr_police(current_node, "opp", view)
         for adj_id in range(1, nodes_count+1):
             h[adj_id] = INF
             # write(f"{current_node} !!! {adj_id}")
             if self.cost[current_node][adj_id] != INF and adj_id != current_node:
-                h[adj_id] = self.pr_police(adj_id, view)
+                h[adj_id] = self.pr_police(adj_id, "opp", view)
             #     h[adj_id] = INF
             #     if self.degrees[adj_id] != 1 and view.balance > self.cost[current_node][adj_id]:
             #         h[adj_id] = (math.sqrt(self.cost[current_node][adj_id])) * \
@@ -195,11 +221,11 @@ class AI:
 
         h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
         current_node = view.viewer.node_id
-        current_threat = self.pr_theives(current_node, view)
+        current_threat = self.pr_theives(current_node, "opp", view)
         for adj_id in range(1, nodes_count+1):
             h[adj_id] = INF
             if self.cost[current_node][adj_id] != INF and adj_id != current_node:
-                h[adj_id] = self.pr_theives(adj_id, view)
+                h[adj_id] = self.pr_theives(adj_id, "opp", view)
                 # and self.degree == 1
                 # if view.balance > self.cost[current_node][adj_id]:
                 #     h[adj_id] = (math.sqrt(self.cost[current_node][adj_id])) * self.pr_police(
