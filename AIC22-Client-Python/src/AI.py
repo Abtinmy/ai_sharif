@@ -56,12 +56,29 @@ def floyd_warshall(paths, n):
 
 
 def get_thief_starting_node(view: GameView) -> int:
-    return random.randint(2, len(view.config.graph.nodes))
+     #method 1
+    # return random.randint(2, len(view.config.graph.nodes))
 
-    # i = int(len(view.config.graph.nodes)/len(AllThieves?!))
-    # st_node = random.randint(i*view.id, i*view.id+i)
-    # write(str(view.id) + " -> " + str(st_node))
-    # return st_node
+    # method 2
+    count_thieves = 0
+    team = view.viewer.team
+    for agent in view.visible_agents:
+      if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
+        count_thieves += 1
+    
+    i = int(len(view.config.graph.nodes)/len(count_thieves))
+    st_node = random.randint(i*view.id, i*view.id+i)
+    write(str(view.id) + " -> " + str(st_node))
+    return st_node
+
+    # method 3
+    # count_node = len(view.config.graph.nodes)
+    # start_node = 1
+    # while start_node == 1:
+    #   rand = np.random.uniform(low=0,high=1)
+    #   start_node =  int(rand * count_node) + 1
+    # return start_node
+
 
 
 class Phone:
