@@ -74,7 +74,7 @@ def get_thief_starting_node(view: GameView) -> int:
     # method 3
     # count_node = len(view.config.graph.nodes)
     # start_node = 1
-    # while start_node == 1:
+    # while start_node == 1 or start_node > count_node:
     #   rand = np.random.uniform(low=0,high=1)
     #   start_node =  int(rand * count_node) + 1
     # return start_node
@@ -88,7 +88,7 @@ def get_thief_starting_node(view: GameView) -> int:
     #   count_node = len(view.config.graph.nodes)
     #   distances = floyd_warshall(view.config.graph.paths, count_node)
   
-    # police_distances = distances[1][1:]
+    # police_distances = distances[1]
     # argsorted_distances = np.argsort(police_distances)
 
     # return argsorted_distances[-view.viewer.id]
