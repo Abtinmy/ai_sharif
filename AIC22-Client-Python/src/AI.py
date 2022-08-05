@@ -10,7 +10,7 @@ PR_STAY = 10
 
 
 def write(txt):
-    f = open("log.log", "a")
+    f = open("log_opponent1.log", "a")
     f.write(txt)
     f.write('\n')
     f.close()
@@ -91,11 +91,11 @@ class AI:
         pc = 0
         for vu in view.visible_agents:
             if (
-                    not vu.is_dead and
-                    vu.node_id == node_id and
-                    vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and
-                    vu.team == team
-                ):
+                not vu.is_dead and
+                vu.node_id == node_id and
+                vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and
+                vu.team == team
+            ):
                 pc += 1
         return pc
 
@@ -103,11 +103,11 @@ class AI:
         tc = 0
         for vu in view.visible_agents:
             if (
-                    not vu.is_dead and
-                    vu.node_id == node_id and
-                    vu.agent_type == hide_and_seek_pb2.AgentType.THIEF and
-                    vu.team == team
-                ):
+                not vu.is_dead and
+                vu.node_id == node_id and
+                vu.agent_type == hide_and_seek_pb2.AgentType.THIEF and
+                vu.team == team
+            ):
                 tc += 1
         return tc
 
@@ -125,9 +125,11 @@ class AI:
                     p_count = self.police_count(adj_id, view.viewer.team, view)
                 else:
                     if view.viewer.team == hide_and_seek_pb2.Team.FIRST:
-                        p_count = self.police_count(adj_id, hide_and_seek_pb2.Team.SECOND, view)
+                        p_count = self.police_count(
+                            adj_id, hide_and_seek_pb2.Team.SECOND, view)
                     else:
-                        p_count = self.police_count(adj_id, hide_and_seek_pb2.Team.FIRST, view)
+                        p_count = self.police_count(
+                            adj_id, hide_and_seek_pb2.Team.FIRST, view)
 
                 pr += p_count / self.degrees[adj_id]
         return pr
@@ -143,12 +145,15 @@ class AI:
             if self.cost[node_id][adj_id] != INF:
                 t_count = None
                 if team_type == "same":
-                    t_count = self.thieves_count(adj_id, view.viewer.team, view)
+                    t_count = self.thieves_count(
+                        adj_id, view.viewer.team, view)
                 else:
                     if view.viewer.team == hide_and_seek_pb2.Team.FIRST:
-                        t_count = self.thieves_count(adj_id, hide_and_seek_pb2.Team.SECOND, view)
+                        t_count = self.thieves_count(
+                            adj_id, hide_and_seek_pb2.Team.SECOND, view)
                     else:
-                        t_count = self.thieves_count(adj_id, hide_and_seek_pb2.Team.FIRST, view)
+                        t_count = self.thieves_count(
+                            adj_id, hide_and_seek_pb2.Team.FIRST, view)
 
                 pr += t_count / self.degrees[adj_id]
         return pr
