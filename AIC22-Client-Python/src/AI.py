@@ -78,6 +78,9 @@ def get_thief_starting_node(view: GameView) -> int:
     #   rand = np.random.uniform(low=0,high=1)
     #   start_node =  int(rand * count_node) + 1
     # return start_node
+    
+    # method 4 sampling from beta distribution
+    # np.random.beta(a=5,b=2) -> replace with above sampling method
 
 
 
