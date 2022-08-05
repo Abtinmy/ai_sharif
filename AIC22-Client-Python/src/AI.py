@@ -7,7 +7,7 @@ from src import hide_and_seek_pb2
 
 INF = float('inf')
 PR_STAY = 10
-
+distances = None
 
 def write(txt):
     f = open("log_opponent1.log", "a")
@@ -81,6 +81,18 @@ def get_thief_starting_node(view: GameView) -> int:
     
     # method 4 sampling from beta distribution
     # np.random.beta(a=5,b=2) -> replace with above sampling method
+    
+    
+    # method 5 select ith furthest node from police station for ith thief
+    # if distances == None:
+    #   count_node = len(view.config.graph.nodes)
+    #   distances = floyd_warshall(view.config.graph.paths, count_node)
+  
+    # police_distances = distances[1][1:]
+    # argsorted_distances = np.argsort(police_distances)
+
+    # return argsorted_distances[-view.viewer.id]
+
 
 
 
