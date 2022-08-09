@@ -58,7 +58,7 @@ def minDistance(dist, queue):
     minimum = float("Inf")
     min_index = -1
         
-    for i in range(len(dist)):
+    for i in range(1, len(dist)):
         if dist[i] < minimum and i in queue:
             minimum = dist[i]
             min_index = i
@@ -73,17 +73,17 @@ def dijkstra(graph, source_node_id, target_node_id) -> [int]:
     dist[source_node_id] = 0
     
     queue = []
-    for i in range(row):
+    for i in range(1, row):
         queue.append(i)
             
     while queue:
         u = minDistance(dist, queue)
         queue.remove(u)
 
-        for i in range(col):
-            is_one = 1 if graph[u][i] > 0  and graph[u][i] != INF else 0
+        for i in range(1, col):
+            is_one = 1 if graph[u][i] >= 0  and graph[u][i] != INF else 0
             if is_one and i in queue:
-                if dist[u] + is_one < dist[i] and :
+                if dist[u] + is_one < dist[i]:
                     dist[i] = dist[u] + is_one
                     parent[i] = u
 
@@ -258,12 +258,12 @@ class AI:
         nodes_count = len(view.config.graph.nodes)
         current_node = view.viewer.node_id
 
-        thieves_nodes = [thief.node_id for thief in view.config.visible_agents 
+        thieves_nodes = [thief.node_id for thief in view.visible_agents 
                                         if (thief.agent_type == hide_and_seek_pb2.AgentType.THIEF and
                                            thief.team != view.viewer.team)]
 
         if view.turn.turn_number in view.config.visible_turns:
-            mat = floyd_warshall(self.cost, nodes_count)   
+            mat = floyd_warshall(view.config.graph.paths, nodes_count)   
             min_dist = INF 
             move_to = []
             for node_id in thieves_nodes:
@@ -301,7 +301,7 @@ class AI:
         self.police_target = self.find_target_police(view)
     
         path = dijkstra(self.cost, current_node, self.police_target)
-        return path[-2]
+        return path[1]
 
 
         # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
