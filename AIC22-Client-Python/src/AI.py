@@ -9,6 +9,7 @@ INF = float('inf')
 PR_STAY = 10
 distances = None
 
+
 def write(txt):
     f = open("log_opponent1.log", "a")
     f.write(txt)
@@ -37,8 +38,9 @@ def convert_paths_to_adj(paths, n):
             for j in range(n+1):
                 adj[i][j] /= min_price
 
-    #write(str(adj))
+    # write(str(adj))
     return adj
+
 
 def floyd_warshall(paths, n):
 
@@ -57,12 +59,13 @@ def floyd_warshall(paths, n):
 def minDistance(dist, queue):
     minimum = float("Inf")
     min_index = -1
-        
+
     for i in range(1, len(dist)):
         if dist[i] < minimum and i in queue:
             minimum = dist[i]
             min_index = i
     return min_index
+
 
 def dijkstra(graph, source_node_id, target_node_id) -> [int]:
     row = len(graph)
@@ -71,17 +74,17 @@ def dijkstra(graph, source_node_id, target_node_id) -> [int]:
     dist = [float("Inf")] * row
     parent = [-1] * row
     dist[source_node_id] = 0
-    
+
     queue = []
     for i in range(1, row):
         queue.append(i)
-            
+
     while queue:
         u = minDistance(dist, queue)
         queue.remove(u)
 
         for i in range(1, col):
-            is_one = 1 if graph[u][i] >= 0  and graph[u][i] != INF else 0
+            is_one = 1 if graph[u][i] >= 0 and graph[u][i] != INF else 0
             if is_one and i in queue:
                 if dist[u] + is_one < dist[i]:
                     dist[i] = dist[u] + is_one
@@ -92,24 +95,24 @@ def dijkstra(graph, source_node_id, target_node_id) -> [int]:
     while parent[node] != -1:
         path.append(node)
         node = parent[node]
-                
+
     return path
-    
+
 
 def get_thief_starting_node(view: GameView) -> int:
-     #method 1
+    # method 1
     # return random.randint(2, len(view.config.graph.nodes))
 
     # method 2
     count_thieves = 0
     team = view.viewer.team
     for agent in view.visible_agents:
-      if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
-        count_thieves += 1
-    
+        if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
+            count_thieves += 1
+
     i = int(len(view.config.graph.nodes)/count_thieves)
     st_node = random.randint(i*view.viewer.id, i*view.viewer.id+i)
-    write(str(view.viewer.id) + " -> " + str(st_node))
+    # write(str(view.viewer.id) + " -> " + str(st_node))
     return st_node
 
     # method 3
@@ -119,22 +122,19 @@ def get_thief_starting_node(view: GameView) -> int:
     #   rand = np.random.uniform(low=0,high=1)
     #   start_node =  int(rand * count_node) + 1
     # return start_node
-    
+
     # method 4 sampling from beta distribution
     # np.random.beta(a=5,b=2) -> replace with above sampling method
-    
-    
+
     # method 5 select ith furthest node from police station for ith thief
     # if distances == None:
     #   count_node = len(view.config.graph.nodes)
     #   distances = floyd_warshall(view.config.graph.paths, count_node)
-  
+
     # police_distances = distances[1]
     # argsorted_distances = np.argsort(police_distances)
 
     # return argsorted_distances[-view.viewer.id]
-
-
 
 
 class Phone:
@@ -234,7 +234,7 @@ class AI:
                 view.config.graph.paths, nodes_count)
         if self.degrees is None:
             self.degrees = self.get_degrees(view)
-       
+
         h = {}      # h(next) = cost * (prob. Of polices)
         current_node = view.viewer.node_id
         h[current_node] = self.pr_police(current_node, "opp", view)
@@ -242,29 +242,29 @@ class AI:
             h[adj_id] = INF
             if self.cost[current_node][adj_id] != INF and adj_id != current_node:
                 h[adj_id] = self.pr_police(adj_id, "opp", view)
-            
+
         min_h = min(h.values())
         move_to = current_node
         if min_h != INF:
             min_nodes = [k for k, v in h.items() if v == min_h]
             move_to = random.choice(min_nodes)
 
-        write("Thief: "+str(h))
-        write("Thief with id " + str(view.viewer.id) + " in node " +
-                str(current_node) + " move to " + str(move_to))
+        # write("Thief: "+str(h))
+        # write("Thief with id " + str(view.viewer.id) + " in node " +
+        #       str(current_node) + " move to " + str(move_to))
         return move_to
 
     def find_target_police(self, view: GameView):
         nodes_count = len(view.config.graph.nodes)
         current_node = view.viewer.node_id
 
-        thieves_nodes = [thief.node_id for thief in view.visible_agents 
-                                        if (thief.agent_type == hide_and_seek_pb2.AgentType.THIEF and
-                                           thief.team != view.viewer.team)]
+        thieves_nodes = [thief.node_id for thief in view.visible_agents
+                         if (thief.agent_type == hide_and_seek_pb2.AgentType.THIEF and
+                             thief.team != view.viewer.team)]
 
         if view.turn.turn_number in view.config.visible_turns:
-            mat = floyd_warshall(view.config.graph.paths, nodes_count)   
-            min_dist = INF 
+            mat = floyd_warshall(view.config.graph.paths, nodes_count)
+            min_dist = INF
             move_to = []
             for node_id in thieves_nodes:
                 if mat[current_node][node_id] < min_dist:
@@ -289,20 +289,20 @@ class AI:
     def police_move_ai(self, view: GameView) -> int:
         nodes_count = len(view.config.graph.nodes)
         current_node = view.viewer.node_id
-        
+
         if self.cost is None:
             self.cost = convert_paths_to_adj(
                 view.config.graph.paths, len(view.config.graph.nodes))
         if self.degrees is None:
             self.degrees = self.get_degrees(view)
-        
+
         if self.police_target == current_node:
             self.police_target = None
         self.police_target = self.find_target_police(view)
-    
-        path = dijkstra(self.cost, current_node, self.police_target)
-        return path[1]
 
+        path = dijkstra(self.cost, current_node, self.police_target)
+        write(f"{current_node=}, {self.police_target=}, {path = }")
+        return path[1]
 
         # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
         # h[current_node] = self.pr_theives(current_node, "opp", view)
@@ -310,7 +310,7 @@ class AI:
         #     h[adj_id] = INF
         #     if self.cost[current_node][adj_id] != INF and adj_id != current_node:
         #         h[adj_id] = self.pr_theives(adj_id, "opp", view)
-                
+
         # min_h = min(h.values())
         # move_to = current_node
         # if min_h != INF:

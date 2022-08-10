@@ -13,9 +13,9 @@ pyinstaller --onefile src/client.py
 echo '===== opponent 2 ready ====='
 
 cd ../server
-# java -jar hideandseek-0.0.7.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python/dist/client resources/game.yml resources/map.json
+# java -jar hideandseek-0.1.1.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python/dist/client resources/game.yml resources/map.json
 
 # Play with random oponent
-java -jar hideandseek-0.0.7.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python2/dist/client resources/game.yml resources/map.json
+java -jar hideandseek-0.1.1.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python2/dist/client resources/game.yml resources/map.json
 
 
