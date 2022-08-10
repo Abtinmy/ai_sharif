@@ -11,7 +11,7 @@ distances = None
 
 
 def write(txt):
-    f = open("log_opponent1.log", "a")
+    f = open("logs/log_opponent1.log", "a")
     f.write(txt)
     f.write('\n')
     f.close()
@@ -95,7 +95,7 @@ def dijkstra(graph, source_node_id, target_node_id) -> [int]:
     while parent[node] != -1:
         path.append(node)
         node = parent[node]
-
+    path.append(node)
     return path
 
 
@@ -189,7 +189,7 @@ class AI:
         pr = 1
         nodes_count = len(view.config.graph.nodes)
         for adj_id in range(1, nodes_count+1):
-            if self.cost[node_id][adj_id] != INF:
+            if self.cost[node_id][adj_id] != INF:  # ERROR sometimes!
                 p_count = None
                 if team_type == "same":
                     p_count = self.police_count(adj_id, view.viewer.team, view)
@@ -301,8 +301,8 @@ class AI:
         self.police_target = self.find_target_police(view)
 
         path = dijkstra(self.cost, current_node, self.police_target)
-        write(f"{current_node=}, {self.police_target=}, {path = }")
-        return path[1]
+        write(f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path = }, go to {path[-2]}")
+        return path[-2]
 
         # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
         # h[current_node] = self.pr_theives(current_node, "opp", view)

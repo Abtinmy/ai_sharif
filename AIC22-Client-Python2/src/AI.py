@@ -10,7 +10,7 @@ PR_STAY = 10
 
 
 def write(txt):
-    f = open("log_opponent2.log", "a")
+    f = open("logs/log_opponent2.log", "a")
     f.write(txt)
     f.write('\n')
     f.close()
