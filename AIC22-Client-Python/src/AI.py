@@ -1,5 +1,6 @@
 import random
 import math
+import numpy as np
 from src.client import GameClient
 from src.model import GameView
 from src import hide_and_seek_pb2
@@ -7,7 +8,7 @@ from src import hide_and_seek_pb2
 
 INF = float('inf')
 PR_STAY = 10
-distances = None
+# distances = None
 
 
 def write(txt):
@@ -17,7 +18,7 @@ def write(txt):
     f.close()
 
 
-def convert_paths_to_adj(paths, n):
+def convert_paths_to_adj(paths, n, normalize=False):
 
     inf = float('inf')
     adj = [[inf for j in range(n+1)] for i in range(n+1)]
@@ -26,20 +27,40 @@ def convert_paths_to_adj(paths, n):
     for path in paths:
         adj[path.first_node_id][path.second_node_id] = path.price
         adj[path.second_node_id][path.first_node_id] = path.price
-        if path.price < min_price:
+        if path.price < min_price and path.price != 0:
             min_price = path.price
 
     for i in range(n+1):
         adj[i][i] = 0
 
     # Price normalization: All/Min
-    if min_price != 0:
-        for i in range(n+1):
-            for j in range(n+1):
-                adj[i][j] /= min_price
+    if normalize:
+        if min_price != 0:
+            for i in range(n+1):
+                for j in range(n+1):
+                    adj[i][j] /= min_price
 
     # write(str(adj))
     return adj
+
+
+def floyd_warshall_bool(paths, n):
+
+    D = convert_paths_to_adj(paths, n)
+
+    for i in range(len(D)):
+        for j in range(len(D[0])):
+            if D[i][j] and D[i][j] != INF:
+                D[i][j] = 1
+
+    inf = float('inf')
+    for k in range(n+1):
+        for i in range(n+1):
+            for j in range(n+1):
+                if D[i][k] < inf and D[k][j] < inf:
+                    D[i][j] = min(D[i][j], D[i][k] + D[k][j])
+
+    return D
 
 
 def floyd_warshall(paths, n):
@@ -101,7 +122,7 @@ def dijkstra(graph, source_node_id, target_node_id) -> [int]:
 
 def get_thief_starting_node(view: GameView) -> int:
     # method 1
-    return random.randint(2, len(view.config.graph.nodes))
+    # return random.randint(2, len(view.config.graph.nodes))
 
     # method 2
     # count_thieves = 0
@@ -128,14 +149,21 @@ def get_thief_starting_node(view: GameView) -> int:
 
     # method 5 select ith furthest node from police station for ith thief
     # if distances == None:
-    #   count_node = len(view.config.graph.nodes)
-    #   distances = floyd_warshall(view.config.graph.paths, count_node)
+    count_node = len(view.config.graph.nodes)
+    distances = floyd_warshall_bool(view.config.graph.paths, count_node)
 
-    # police_distances = distances[1]
-    # argsorted_distances = np.argsort(police_distances)
+    police_distances = distances[1]
+    police_distances[0] = -1
+    # write(str(police_distances))
 
-    # write(str(view.viewer.id) + " -> " + str(argsorted_distances[-view.viewer.id]))
-    # return argsorted_distances[-view.viewer.id]
+    argsorted_distances = np.argsort(police_distances)
+    write("Distances: "+str(distances))
+    write("Argsort: "+str(argsorted_distances))
+    write(str(view.viewer.id) + " -> " +
+          str(argsorted_distances[-view.viewer.id]))
+    write("distance: " +
+          str(police_distances[argsorted_distances[-view.viewer.id]]))
+    return argsorted_distances[-view.viewer.id]
 
 
 class Phone:

@@ -6,9 +6,9 @@ rm -rf src/dist/ src/build/
 pyinstaller --onefile src/client.py
 echo '===== opponent 1 ready ====='
 
-cd ../AIC22-Client-Python2/
-rm -rf src/dist/ src/build/
-pyinstaller --onefile src/client.py
+# cd ../AIC22-Client-Python2/
+# rm -rf src/dist/ src/build/
+# pyinstaller --onefile src/client.py
 echo '===== opponent 2 ready ====='
 
 cd ../server
