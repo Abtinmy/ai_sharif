@@ -101,19 +101,19 @@ def dijkstra(graph, source_node_id, target_node_id) -> [int]:
 
 def get_thief_starting_node(view: GameView) -> int:
     # method 1
-    # return random.randint(2, len(view.config.graph.nodes))
+    return random.randint(2, len(view.config.graph.nodes))
 
     # method 2
-    count_thieves = 0
-    team = view.viewer.team
-    for agent in view.visible_agents:
-        if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
-            count_thieves += 1
+    # count_thieves = 0
+    # team = view.viewer.team
+    # for agent in view.visible_agents:
+    #     if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
+    #         count_thieves += 1
 
-    i = int(len(view.config.graph.nodes)/count_thieves)
-    st_node = random.randint(i*view.viewer.id, i*view.viewer.id+i)
+    # i = int(len(view.config.graph.nodes)/count_thieves)
+    # st_node = random.randint(i*view.viewer.id, i*view.viewer.id+i)
     # write(str(view.viewer.id) + " -> " + str(st_node))
-    return st_node
+    # return st_node
 
     # method 3
     # count_node = len(view.config.graph.nodes)
@@ -134,6 +134,7 @@ def get_thief_starting_node(view: GameView) -> int:
     # police_distances = distances[1]
     # argsorted_distances = np.argsort(police_distances)
 
+    # write(str(view.viewer.id) + " -> " + str(argsorted_distances[-view.viewer.id]))
     # return argsorted_distances[-view.viewer.id]
 
 
@@ -189,6 +190,7 @@ class AI:
         pr = 1
         nodes_count = len(view.config.graph.nodes)
         for adj_id in range(1, nodes_count+1):
+            #write(f"node_id = {node_id}, adj_id = {adj_id}, len = {len(self.cost)}, {len(self.cost[0])}")
             if self.cost[node_id][adj_id] != INF:  # ERROR sometimes!
                 p_count = None
                 if team_type == "same":
@@ -301,7 +303,7 @@ class AI:
         self.police_target = self.find_target_police(view)
 
         path = dijkstra(self.cost, current_node, self.police_target)
-        write(f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path = }, go to {path[-2]}")
+        # write(f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path = }, go to {path[-2]}")
         return path[-2]
 
         # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
