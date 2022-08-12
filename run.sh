@@ -15,6 +15,6 @@ cd ../server
 # java -jar hideandseek-0.1.1.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python/dist/client resources/game.yml resources/map.json
 
 # Play with random oponent
-java -jar hideandseek-0.1.1.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python2/dist/client resources/game.yml resources/map.json
+java -jar hideandseek-0.1.1.jar --first-team=../AIC22-Client-Python/dist/client --second-team=../AIC22-Client-Python2/dist/client resources/map2.yml resources/map2.json
 
 
