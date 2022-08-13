@@ -189,7 +189,7 @@ class AI:
                     degrees[n] += 1
         return degrees
 
-    def police_count(self, view: GameVeiew) -> int:
+    def police_count(self, view: GameView) -> int:
         pc = 0
         for vu in view.visible_agents:
             if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team != view.viewer.team):
@@ -274,6 +274,7 @@ class AI:
         if self.degrees is None:
             self.degrees = self.get_degrees(view)
 
+        #TODO: dozd az police door she
         # polices_to_adj = {}
         # #each row --> police
         # # get distance from the nearest police
@@ -357,13 +358,13 @@ class AI:
         self.police_target = self.find_target_police(view)
 
         path = dijkstra(self.cost, current_node, self.police_target)
-        write(
-            f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}")
         # TODO:
         if len(path) > 1:
+            write(
+                f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}")
             return path[-2]
         else:
-            # TODO: az police ha door beshan avvale bazi
+            # TODO: police ha az hamdige door beshan avvale bazi
             # TODO: random nare age dozd gereft. be samte dozde badi bere.
             nexts = []
             for adj_id in range(1, nodes_count+1):
