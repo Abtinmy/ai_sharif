@@ -43,7 +43,7 @@ def convert_paths_to_adj(paths, n, normalize=False):
     return adj
 
 
-def floyd_warshall(paths, n, mode="price") -> list:
+def floyd_warshall(paths, n, mode="distance") -> list:
     """mode: price, distance"""
     # TODO: mix floyd warshall distance and price
 
@@ -113,11 +113,13 @@ def get_thief_starting_node(view: GameView) -> int:
     # return random.randint(2, len(view.config.graph.nodes))
 
     # method 2
-    # count_thieves = 0
-    # team = view.viewer.team
-    # for agent in view.visible_agents:
-    #     if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
-    #         count_thieves += 1
+    thieves_ids = [view.viewer.id]
+    team = view.viewer.team
+    for agent in view.visible_agents:
+        if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
+            thieves_ids.append(agent.id)
+
+    #write('\n thieves: ' + str(thieves_ids))
 
     # i = int(len(view.config.graph.nodes)/count_thieves)
     # st_node = random.randint(i*view.viewer.id, i*view.viewer.id+i)
@@ -142,7 +144,7 @@ def get_thief_starting_node(view: GameView) -> int:
 
     police_distances = distances[1]
     police_distances[0] = -1
-
+    
     argsorted_distances = np.argsort(police_distances)
     # write("Distances: "+str(distances))
     # write("Argsort: "+str(argsorted_distances))
@@ -150,7 +152,7 @@ def get_thief_starting_node(view: GameView) -> int:
     #       str(argsorted_distances[-view.viewer.id]))
     # write("distance: " +
     #       str(police_distances[argsorted_distances[-view.viewer.id]]))
-    return argsorted_distances[-view.viewer.id]
+    return argsorted_distances[-((((view.viewer.id - min(thieves_ids) + 1) * 2) - 1) % len(view.config.graph.nodes))]
 
 
 class Phone:
@@ -168,6 +170,8 @@ class AI:
         self.floyd_warshall_matrix = None
         self.degrees = None
         self.police_target = None
+        self.prev_nodes = []
+        self.view = view
 
     def get_degrees(self, view: GameView) -> list:
         nodes_count = len(view.config.graph.nodes)
@@ -200,6 +204,13 @@ class AI:
             if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team != view.viewer.team):
                 polices_nodes.append(vu.node_id)
         return polices_nodes
+
+    def get_ours_polices_ids(self, view: GameView) -> list:
+        polices_ids = []
+        for vu in view.visible_agents:
+            if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team == view.viewer.team):
+                polices_ids.append(vu.id)
+        return polices_ids
 
     def police_count_node(self, node_id, team, view: GameView) -> int:
         pc = 0
@@ -272,6 +283,12 @@ class AI:
             pr += t_count / self.degrees[adj_id]
         return pr
 
+    def isThiefin(self, node_id, view: GameView) -> bool:
+        for t in view.visible_agents:
+            if t.agent_type == hide_and_seek_pb2.AgentType.THIEF and self.view.viewer.team == t.team and t.node_id == node_id:
+                return True
+        return False
+    
     def thief_move_ai(self, view: GameView) -> int:
         current_node = view.viewer.node_id
         nodes_count = len(view.config.graph.nodes)
@@ -295,17 +312,23 @@ class AI:
             [k for k, v in police_distances.items() if v == shortest_dist])
 
         nearest_police_to_adjacents = {}
-        adjacents = self.get_adjacents(current_node, view)
+        adjacents = []
+        if shortest_dist <  4:
+            adjacents = self.get_adjacents(current_node, view)
+        else:
+            for adj_id in range(1, nodes_count+1):
+                if self.cost[current_node][adj_id] != INF and adj_id != current_node and not self.isThiefin(adj_id, view):
+                    adjacents.append(adj_id)
         adjacents.append(current_node)
         for adj_id in adjacents:
             nearest_police_to_adjacents[adj_id] = self.floyd_warshall_matrix[adj_id][nearest_police]
-        write(f"{nearest_police_to_adjacents=}")
+        #write(f"{nearest_police_to_adjacents=}")
         furthest_dist_to_police = max(nearest_police_to_adjacents.values())
         furthest_adjacents = [
             k for k, v in nearest_police_to_adjacents.items() if v == furthest_dist_to_police]
         if furthest_adjacents:
             move_to = random.choice(furthest_adjacents)
-            write(f"{move_to=}")
+            #write(f"{move_to=}")
             return move_to
         else:
             # TODO: idk
@@ -326,14 +349,15 @@ class AI:
             # write("Thief with id " + str(view.viewer.id) + " in node " +
             #       str(current_node) + " move to " + str(move_to))
             return move_to
-
+    
     def find_target_police(self, view: GameView):
         nodes_count = len(view.config.graph.nodes)
         current_node = view.viewer.node_id
 
         thieves_nodes = [thief.node_id for thief in view.visible_agents
                          if (thief.agent_type == hide_and_seek_pb2.AgentType.THIEF and
-                             thief.team != view.viewer.team)]
+                             thief.team != view.viewer.team and
+                             not thief.is_dead)]
 
         if view.turn.turn_number in view.config.visible_turns:
             fwarshal_mat = self.floyd_warshall_matrix
@@ -346,20 +370,36 @@ class AI:
                     move_to.append(node_id)
                 elif fwarshal_mat[current_node][node_id] == min_dist and node_id != current_node:
                     move_to.append(node_id)
-            write(
-                f"moveto test : {move_to}, distance = {fwarshal_mat[current_node][move_to[0]]}")
+            # write(
+            #     f"moveto test : {move_to}, distance = {fwarshal_mat[current_node][move_to[0]]}")
 
             return random.choice(move_to)
         else:
             if self.police_target is None:
+                polices = self.get_ours_polices_ids(view)
+                polices = sorted(polices)
+
                 nexts = []
                 for adj_id in self.get_adjacents(current_node, view):
                     nexts.append(adj_id)
+                
+                target = nexts[(view.viewer.id - min(polices)) % len(nexts)]
+                x = 1
+                while target in self.prev_nodes:
+                    target = target = nexts[((view.viewer.id - min(polices)) + x) % len(nexts)]
+                    x += 1
+                    if x == 6:
+                        break
 
-                return random.choice(nexts)
+                return target
             else:
                 return self.police_target
 
+    def push_to_prev_nodes(self, node_id: int):
+        if len(self.prev_nodes) == 2:
+            self.prev_nodes.remove(self.prev_nodes[0])
+        self.prev_nodes.append(node_id)
+    
     def police_move_ai(self, view: GameView) -> int:
         nodes_count = len(view.config.graph.nodes)
         current_node = view.viewer.node_id
@@ -382,13 +422,24 @@ class AI:
         if len(path) > 1:
             # write(
             #     f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}")
+            self.push_to_prev_nodes(path[-2])
             return path[-2]
         else:
             # TODO: police ha az hamdige door beshan avvale bazi
             # TODO: --> less important random nare age dozd gereft. be samte dozde badi bere.
             adjacents = self.get_adjacents(current_node, view)
             adjacents.append(current_node)
-            return random.choice(adjacents)
+            
+            target = random.choice(adjacents)
+            x = 0
+            while target in self.prev_nodes:
+                target = random.choice(adjacents)
+                x += 1
+                if x == 5:
+                    break
+
+            self.push_to_prev_nodes(target)
+            return target
 
         # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
         # h[current_node] = self.pr_theives(current_node, "opp", view)
