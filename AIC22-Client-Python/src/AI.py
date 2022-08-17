@@ -162,7 +162,7 @@ class Phone:
 
 
 class AI:
-    def __init__(self, phone: Phone):
+    def __init__(self, view: GameView, phone: Phone):
         self.phone = phone
         self.cost = None
         self.floyd_warshall_matrix = None
