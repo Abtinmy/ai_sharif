@@ -121,15 +121,15 @@ def get_thief_starting_node(view: GameView) -> int:
 
     # i = int(len(view.config.graph.nodes)/count_thieves)
     # st_node = random.randint(i*view.viewer.id, i*view.viewer.id+i)
-    # write(str(view.viewer.id) + " -> " + str(st_node))
+    # # write(str(view.viewer.id) + " -> " + str(st_node))
     # return st_node
 
     # method 3
     # count_node = len(view.config.graph.nodes)
     # start_node = 1
     # while start_node == 1 or start_node > count_node:
-    #   rand = np.random.uniform(low=0,high=1)
-    #   start_node =  int(rand * count_node) + 1
+    #     rand = np.random.uniform(low=0, high=1)
+    #     start_node = int(rand * count_node) + 1
     # return start_node
 
     # method 4 sampling from beta distribution
@@ -336,16 +336,18 @@ class AI:
                              thief.team != view.viewer.team)]
 
         if view.turn.turn_number in view.config.visible_turns:
-            mat = self.floyd_warshall_matrix
+            fwarshal_mat = self.floyd_warshall_matrix
             min_dist = INF
             move_to = []
             for node_id in thieves_nodes:
-                if mat[current_node][node_id] < min_dist:
+                if fwarshal_mat[current_node][node_id] < min_dist and node_id != current_node:
                     move_to.clear()
-                    min_dist = mat[current_node][node_id]
+                    min_dist = fwarshal_mat[current_node][node_id]
                     move_to.append(node_id)
-                elif mat[current_node][node_id] == min_dist:
+                elif fwarshal_mat[current_node][node_id] == min_dist and node_id != current_node:
                     move_to.append(node_id)
+            write(
+                f"moveto test : {move_to}, distance = {fwarshal_mat[current_node][move_to[0]]}")
 
             return random.choice(move_to)
         else:
