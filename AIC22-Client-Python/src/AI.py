@@ -9,6 +9,7 @@ from src import hide_and_seek_pb2
 INF = float('inf')
 PR_STAY = 10
 
+#FIRST -> BLUE
 
 def write(txt):
     f = open("logs/log_opponent1.log", "a")
@@ -288,6 +289,16 @@ class AI:
             if t.agent_type == hide_and_seek_pb2.AgentType.THIEF and self.view.viewer.team == t.team and t.node_id == node_id:
                 return True
         return False
+
+    def isPolicein(self, node_id, view: GameView, same_team: bool = False) -> bool:
+        for t in view.visible_agents:
+            if same_team:
+                if t.agent_type == hide_and_seek_pb2.AgentType.POLICE and self.view.viewer.team == t.team and t.node_id == node_id:
+                    return True
+            else:
+                if t.agent_type == hide_and_seek_pb2.AgentType.POLICE and self.view.viewer.team != t.team and t.node_id == node_id:
+                    return True
+        return False
     
     def thief_move_ai(self, view: GameView) -> int:
         current_node = view.viewer.node_id
@@ -304,7 +315,8 @@ class AI:
         # TODO: dozd az police door she
 
         police_distances = {}
-        for police_node in self.get_opponent_polices_nodes(view):
+        opponent_polices_nodes = self.get_opponent_polices_nodes(view)
+        for police_node in opponent_polices_nodes:
             police_distances[police_node] = self.floyd_warshall_matrix[current_node][police_node]
 
         shortest_dist = min(police_distances.values())
@@ -313,17 +325,30 @@ class AI:
 
         nearest_police_to_adjacents = {}
         adjacents = []
-        if shortest_dist <  4:
+        if shortest_dist <  max(police_distances.values()) // 2:
             adjacents = self.get_adjacents(current_node, view)
         else:
+            flag = False
+            flag2 = False
             for adj_id in range(1, nodes_count+1):
                 if self.cost[current_node][adj_id] != INF and adj_id != current_node and not self.isThiefin(adj_id, view):
-                    adjacents.append(adj_id)
-        adjacents.append(current_node)
+                    if self.degrees[adj_id] > 2:
+                        flag = True
+                        if not flag2:
+                            flag2 = True
+                            adjacents.clear()
+                        adjacents.append(adj_id)
+                    elif not flag: 
+                        adjacents.append(adj_id)
+        #adjacents.append(current_node)
         for adj_id in adjacents:
-            nearest_police_to_adjacents[adj_id] = self.floyd_warshall_matrix[adj_id][nearest_police]
+            nearest_police_to_adjacents[adj_id] = min([self.floyd_warshall_matrix[adj_id][p] for p in opponent_polices_nodes])
         #write(f"{nearest_police_to_adjacents=}")
-        furthest_dist_to_police = max(nearest_police_to_adjacents.values())
+        furthest_dist_to_police = -1
+        for p in nearest_police_to_adjacents.keys():
+            if nearest_police_to_adjacents[p] > furthest_dist_to_police and not self.isPolicein(p, view):
+                furthest_dist_to_police = nearest_police_to_adjacents[p]
+
         furthest_adjacents = [
             k for k, v in nearest_police_to_adjacents.items() if v == furthest_dist_to_police]
         if furthest_adjacents:
@@ -364,14 +389,18 @@ class AI:
             min_dist = INF
             move_to = []
             for node_id in thieves_nodes:
-                if fwarshal_mat[current_node][node_id] < min_dist and node_id != current_node:
-                    move_to.clear()
-                    min_dist = fwarshal_mat[current_node][node_id]
-                    move_to.append(node_id)
-                elif fwarshal_mat[current_node][node_id] == min_dist and node_id != current_node:
-                    move_to.append(node_id)
+                if not self.isPolicein(node_id, view, True):
+                    if fwarshal_mat[current_node][node_id] < min_dist and node_id != current_node:
+                        move_to.clear()
+                        min_dist = fwarshal_mat[current_node][node_id]
+                        move_to.append(node_id)
+                    elif fwarshal_mat[current_node][node_id] == min_dist and node_id != current_node:
+                        move_to.append(node_id)
             # write(
             #     f"moveto test : {move_to}, distance = {fwarshal_mat[current_node][move_to[0]]}")
+
+            if not move_to:
+                return random.choice(self.get_adjacents(current_node, view))
 
             return random.choice(move_to)
         else:
@@ -381,12 +410,17 @@ class AI:
 
                 nexts = []
                 for adj_id in self.get_adjacents(current_node, view):
-                    nexts.append(adj_id)
+                    if not self.isPolicein(adj_id, view, True):
+                        nexts.append(adj_id)
+
+                if not nexts:
+                    nexts.append(current_node)
                 
                 target = nexts[(view.viewer.id - min(polices)) % len(nexts)]
                 x = 1
                 while target in self.prev_nodes:
-                    target = target = nexts[((view.viewer.id - min(polices)) + x) % len(nexts)]
+                    target = nexts[((view.viewer.id - min(polices)) + x) % len(nexts)]
+
                     x += 1
                     if x == 6:
                         break
@@ -418,7 +452,25 @@ class AI:
 
         self.police_target = self.find_target_police(view)
 
-        path = dijkstra(self.cost, current_node, self.police_target)
+
+        polices_in = []
+        for vu in view.visible_agents:
+            if (
+                vu.node_id == current_node and
+                vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and
+                vu.team == view.viewer.team
+            ):
+                polices_in.append(vu.id)
+    
+        polices_in = sorted(polices_in)        
+
+        path = []
+        if len(polices_in) > 1 and view.viewer.id in polices_in[1:]:
+            adj_node = random.choice(self.get_adjacents(current_node, view))
+            path = [adj_node] + dijkstra(self.cost, adj_node, self.police_target) 
+        else:
+            path = dijkstra(self.cost, current_node, self.police_target)
+        
         if len(path) > 1:
             # write(
             #     f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}")

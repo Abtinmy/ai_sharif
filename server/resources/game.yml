@@ -1456,9 +1456,12 @@ graph:
     - id: 159
 
 turnSettings:
-  maxTurns: 10
+  maxTurns: 30
   visibleTurns:
     - 8
+    - 14
+    - 18
+    - 26
   
 
 chatSettings:
