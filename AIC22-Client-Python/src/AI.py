@@ -1,3 +1,4 @@
+from cmath import inf
 import random
 import math
 import numpy as np
@@ -352,8 +353,23 @@ class AI:
         furthest_adjacents = [
             k for k, v in nearest_police_to_adjacents.items() if v == furthest_dist_to_police]
         if furthest_adjacents:
-            move_to = random.choice(furthest_adjacents)
-            #write(f"{move_to=}")
+
+            # max_degree = -1
+            # move_to = current_node
+            # for adj in furthest_adjacents:
+            #     if self.degrees[adj] > max_degree:
+            #         max_degree = self.degrees[adj]
+            #         move_to = adj
+
+            max_cost = -1
+            move_to = current_node
+            for adj in furthest_adjacents:
+                if self.cost[adj][current_node] > max_cost:
+                    max_cost = self.cost[adj][current_node]
+                    move_to = adj
+
+            # move_to = random.choice(furthest_adjacents)
+            # write(f"{move_to=}")
             return move_to
         else:
             # TODO: idk
@@ -452,7 +468,6 @@ class AI:
 
         self.police_target = self.find_target_police(view)
 
-
         polices_in = []
         for vu in view.visible_agents:
             if (
@@ -465,9 +480,14 @@ class AI:
         polices_in = sorted(polices_in)        
 
         path = []
+        adjacents_to_thief = {}
         if len(polices_in) > 1 and view.viewer.id in polices_in[1:]:
-            adj_node = random.choice(self.get_adjacents(current_node, view))
-            path = [adj_node] + dijkstra(self.cost, adj_node, self.police_target) 
+            for adj in self.get_adjacents(current_node, view):
+                adjacents_to_thief[adj] = self.floyd_warshall_matrix[adj][self.police_target]
+            sorted_adjs = dict(sorted(adjacents_to_thief.items(), key=lambda item: item[1])).keys()
+            current_police_index = polices_in.index(view.viewer.id)
+            adj_node = sorted_adjs[current_police_index]
+            path = dijkstra(self.cost, adj_node, self.police_target).append(current_node) 
         else:
             path = dijkstra(self.cost, current_node, self.police_target)
         
@@ -475,6 +495,8 @@ class AI:
             # write(
             #     f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}")
             self.push_to_prev_nodes(path[-2])
+            write(
+                f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}, {self.prev_nodes=}")
             return path[-2]
         else:
             # TODO: police ha az hamdige door beshan avvale bazi
@@ -491,6 +513,9 @@ class AI:
                     break
 
             self.push_to_prev_nodes(target)
+
+            write(f"agent id={view.viewer.id}, {current_node=}, {target=}. {self.prev_nodes=}")
+
             return target
 
         # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
