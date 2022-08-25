@@ -1,10 +1,10 @@
-from cmath import inf
 import random
 import math
 import numpy as np
 from src.client import GameClient
 from src.model import GameView
 from src import hide_and_seek_pb2
+import copy
 
 
 INF = float('inf')
@@ -477,17 +477,20 @@ class AI:
             ):
                 polices_in.append(vu.id)
     
-        polices_in = sorted(polices_in)        
+        polices_in = sorted(polices_in)    
 
         path = []
         adjacents_to_thief = {}
         if len(polices_in) > 1 and view.viewer.id in polices_in[1:]:
             for adj in self.get_adjacents(current_node, view):
                 adjacents_to_thief[adj] = self.floyd_warshall_matrix[adj][self.police_target]
-            sorted_adjs = dict(sorted(adjacents_to_thief.items(), key=lambda item: item[1])).keys()
+            sorted_adjs =list( dict(sorted(adjacents_to_thief.items(), key=lambda item: item[1])).keys())
             current_police_index = polices_in.index(view.viewer.id)
             adj_node = sorted_adjs[current_police_index]
-            path = dijkstra(self.cost, adj_node, self.police_target).append(current_node) 
+            path = dijkstra(self.cost, adj_node, self.police_target)
+            path.append(current_node)
+            # write(f'{path=}, {self.police_target=}')
+            write(f"agent id={view.viewer.id}, {sorted_adjs=},{current_police_index=}, {self.police_target=},{adj_node=}, {path= },")
         else:
             path = dijkstra(self.cost, current_node, self.police_target)
         
@@ -495,8 +498,8 @@ class AI:
             # write(
             #     f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}")
             self.push_to_prev_nodes(path[-2])
-            write(
-                f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}, {self.prev_nodes=}")
+            # write(
+            #     f"agent id={view.viewer.id}, {current_node=}, {self.police_target=}, {path= }, go to {path[-2]}, {self.prev_nodes=}")
             return path[-2]
         else:
             # TODO: police ha az hamdige door beshan avvale bazi
@@ -514,7 +517,7 @@ class AI:
 
             self.push_to_prev_nodes(target)
 
-            write(f"agent id={view.viewer.id}, {current_node=}, {target=}. {self.prev_nodes=}")
+            # write(f"agent id={view.viewer.id}, {current_node=}, {target=}. {self.prev_nodes=}")
 
             return target
 
