@@ -4,8 +4,7 @@ import numpy as np
 from src.client import GameClient
 from src.model import GameView
 from src import hide_and_seek_pb2
-import copy
-
+from src.model import AgentType
 
 INF = float('inf')
 PR_STAY = 10
@@ -78,7 +77,7 @@ def minDistance(dist, queue):
     return min_index
 
 
-def dijkstra(graph, source_node_id, target_node_id) -> [int]:
+def dijkstra(graph, source_node_id, target_node_id) -> list:
     row = len(graph)
     col = len(graph[0])
 
@@ -118,7 +117,7 @@ def get_thief_starting_node(view: GameView) -> int:
     thieves_ids = [view.viewer.id]
     team = view.viewer.team
     for agent in view.visible_agents:
-        if agent.agent_type == hide_and_seek_pb2.AgentType.THIEF and agent.team == team:
+        if agent.agent_type == AgentType.THIEF and agent.team == team:
             thieves_ids.append(agent.id)
 
     count_node = len(view.config.graph.nodes)
@@ -150,6 +149,7 @@ class AI:
         self.police_target = None
         self.prev_nodes = []
         self.view = view
+        # write(str(dir(view.viewer)))
 
     def get_degrees(self, view: GameView) -> list:
         nodes_count = len(view.config.graph.nodes)
@@ -171,7 +171,7 @@ class AI:
     def police_count_all(self, view: GameView) -> int:
         pc = 0
         for vu in view.visible_agents:
-            if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team != view.viewer.team):
+            if(vu.agent_type == AgentType.POLICE and vu.team != view.viewer.team):
                 pc += 1
         pc += 1
         return pc
@@ -179,32 +179,34 @@ class AI:
     def get_opponent_polices_nodes(self, view: GameView) -> list:
         polices_nodes = []
         for vu in view.visible_agents:
-            if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team != view.viewer.team):
+            if(vu.agent_type == AgentType.POLICE and vu.team != view.viewer.team):
                 polices_nodes.append(vu.node_id)
         return polices_nodes
+
     def get_polices_nodes(self, view: GameView) -> list:
         polices_nodes = []
         for vu in view.visible_agents:
-            if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team == view.viewer.team):
+            if(vu.agent_type == AgentType.POLICE and vu.team == view.viewer.team):
                 polices_nodes.append(vu.node_id)
         return polices_nodes
 
     def get_thief_nodes(self,view: GameView, out_team:bool = True) -> list:
         thief_nodes = []
-        
+        # write(str([a.agent_type.name for a in view.visible_agents]))
         for vu in view.visible_agents:
             if out_team:
-                if(vu.agent_type == hide_and_seek_pb2.AgentType.THIEF and vu.team == view.viewer.team):
+                if(vu.agent_type == AgentType.THIEF and vu.team == view.viewer.team):
                     thief_nodes.append(vu.node_id)
             else:
-                if(vu.agent_type == hide_and_seek_pb2.AgentType.THIEF and vu.team != view.viewer.team):
+                if(vu.agent_type == AgentType.THIEF and vu.team != view.viewer.team):
                     thief_nodes.append(vu.node_id)
         return thief_nodes
 
     def get_ours_polices_ids(self, view: GameView) -> list:
         polices_ids = []
         for vu in view.visible_agents:
-            if(vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and vu.team == view.viewer.team):
+            write(str(vu.agent_type))
+            if(vu.agent_type == AgentType.POLICE and vu.team == view.viewer.team):
                 polices_ids.append(vu.id)
         return polices_ids
 
@@ -214,7 +216,7 @@ class AI:
             if (
                 not vu.is_dead and
                 vu.node_id == node_id and
-                vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and
+                vu.agent_type == AgentType.POLICE and
                 vu.team == team
             ):
                 pc += 1
@@ -226,71 +228,25 @@ class AI:
             if (
                 not vu.is_dead and
                 vu.node_id == node_id and
-                vu.agent_type == hide_and_seek_pb2.AgentType.THIEF and
+                vu.agent_type == AgentType.THIEF and
                 vu.team == team
             ):
                 tc += 1
         return tc
 
-    def pr_police(self, node_id, team_type: str, view: GameView) -> float:
-        pr = 1
-        nodes_count = len(view.config.graph.nodes)
-        adjacents = self.get_adjacents(node_id, view)
-        adjacents.append(node_id)
-        for adj_id in adjacents:
-
-            p_count = None
-            if team_type == "same":
-                p_count = self.police_count_node(
-                    adj_id, view.viewer.team, view)
-            else:
-                if view.viewer.team == hide_and_seek_pb2.Team.FIRST:
-                    p_count = self.police_count_node(
-                        adj_id, hide_and_seek_pb2.Team.SECOND, view)
-                else:
-                    p_count = self.police_count_node(
-                        adj_id, hide_and_seek_pb2.Team.FIRST, view)
-
-            pr += p_count / self.degrees[adj_id]
-        return pr
-
-    def pr_theives(self, node_id, team_type: str, view: GameView) -> float:
-        pr = 1
-        if view.turn.turn_number not in view.config.visible_turns:
-            return pr
-
-        nodes_count = len(view.config.graph.nodes)
-        adjacents = self.get_adjacents(current_node, view)
-        adjacents.append(current_node)
-        for adj_id in adjacents:
-            t_count = None
-            if team_type == "same":
-                t_count = self.thieves_count_node(
-                    adj_id, view.viewer.team, view)
-            else:
-                if view.viewer.team == hide_and_seek_pb2.Team.FIRST:
-                    t_count = self.thieves_count_node(
-                        adj_id, hide_and_seek_pb2.Team.SECOND, view)
-                else:
-                    t_count = self.thieves_count_node(
-                        adj_id, hide_and_seek_pb2.Team.FIRST, view)
-
-            pr += t_count / self.degrees[adj_id]
-        return pr
-
     def isThiefin(self, node_id, view: GameView) -> bool:
         for t in view.visible_agents:
-            if t.agent_type == hide_and_seek_pb2.AgentType.THIEF and self.view.viewer.team == t.team and t.node_id == node_id:
+            if t.agent_type == AgentType.THIEF and self.view.viewer.team == t.team and t.node_id == node_id:
                 return True
         return False
 
     def isPolicein(self, node_id, view: GameView, same_team: bool = False) -> bool:
         for t in view.visible_agents:
             if same_team:
-                if t.agent_type == hide_and_seek_pb2.AgentType.POLICE and self.view.viewer.team == t.team and t.node_id == node_id:
+                if t.agent_type == AgentType.POLICE and self.view.viewer.team == t.team and t.node_id == node_id:
                     return True
             else:
-                if t.agent_type == hide_and_seek_pb2.AgentType.POLICE and self.view.viewer.team != t.team and t.node_id == node_id:
+                if t.agent_type == AgentType.POLICE and self.view.viewer.team != t.team and t.node_id == node_id:
                     return True
         return False
     
@@ -316,10 +272,11 @@ class AI:
 
                 adj_distances = {}
                 adj_nodes = self.get_thief_nodes(view)
+                write(f'{adj_nodes=}')
                 for tn in adj_nodes:
                     adj_distances[tn] = self.floyd_warshall_matrix[adj][tn]
-                
-                adjs_mean[adj] = np.min(list(adj_distances.values()))
+                if adj_distances:
+                    adjs_mean[adj] = math.min(list(adj_distances.values())) #TODO: clean
             
             max_distance = max(adjs_mean.values())
             
@@ -334,8 +291,8 @@ class AI:
             police_distances[police_node] = self.floyd_warshall_matrix[current_node][police_node]
 
         shortest_dist = min(police_distances.values())
-        nearest_police = random.choice(
-            [k for k, v in police_distances.items() if v == shortest_dist])
+        # nearest_police = random.choice(
+        #     [k for k, v in police_distances.items() if v == shortest_dist])
 
         nearest_police_to_adjacents = {}
         adjacents = []
@@ -404,17 +361,19 @@ class AI:
             return move_to
     
     def find_target_police(self, view: GameView):
-        nodes_count = len(view.config.graph.nodes)
         current_node = view.viewer.node_id
 
         thieves_nodes = [thief.node_id for thief in view.visible_agents
-                         if (thief.agent_type == hide_and_seek_pb2.AgentType.THIEF and
+                         if (thief.agent_type == AgentType.THIEF and
                              thief.team != view.viewer.team and
                              not thief.is_dead)]
 
+        for u in view.visible_agents:
+            if u.agent_type == AgentType.JOKER and view.viewer.agent_type == AgentType.BATMAN:
+                return u.node_id
+
         if view.turn.turn_number in view.config.visible_turns:
             fwarshal_mat = self.floyd_warshall_matrix
-            min_dist = INF
             move_to = []
             thief_to_mean_police = {}
             
@@ -423,17 +382,7 @@ class AI:
 
             min_mean = min(list(thief_to_mean_police.values()))
             move_to = [key for key, value in thief_to_mean_police.items() if value == min_mean ]
-                # if not self.isPolicein(node_id, view, True):
-                #     if fwarshal_mat[current_node][node_id] < min_dist and node_id != current_node:
-                #         move_to.clear()
-                #         # min_dist = fwarshal_mat[current_node][node_id]
-                        
-                        
-                            
-                #         move_to.append(node_id)
-                #     elif fwarshal_mat[current_node][node_id] == min_dist and node_id != current_node:
-                #         move_to.append(node_id)
-            
+
 
             if not move_to:
                 return random.choice(self.get_adjacents(current_node, view))
@@ -492,7 +441,7 @@ class AI:
         for vu in view.visible_agents:
             if (
                 vu.node_id == current_node and
-                vu.agent_type == hide_and_seek_pb2.AgentType.POLICE and
+                vu.agent_type == AgentType.POLICE and
                 vu.team == view.viewer.team
             ):
                 polices_in.append(vu.id)
