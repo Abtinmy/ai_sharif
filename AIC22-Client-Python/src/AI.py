@@ -9,6 +9,7 @@ from src.model import AgentType
 INF = float('inf')
 PR_STAY = 10
 
+
 #FIRST -> BLUE
 
 def write(txt):
@@ -117,7 +118,7 @@ def get_thief_starting_node(view: GameView) -> int:
     thieves_ids = [view.viewer.id]
     team = view.viewer.team
     for agent in view.visible_agents:
-        if agent.agent_type == AgentType.THIEF and agent.team == team:
+        if agent.agent_type % 2== 0 and agent.team == team:
             thieves_ids.append(agent.id)
 
     count_node = len(view.config.graph.nodes)
@@ -135,6 +136,7 @@ def get_thief_starting_node(view: GameView) -> int:
 class Phone:
     def __init__(self, client: GameClient):
         self.client = client
+        self.last_index = 0
 
     def send_message(self, message):
         self.client.send_message(message)
@@ -149,6 +151,7 @@ class AI:
         self.police_target = None
         self.prev_nodes = []
         self.view = view
+        self.visible_thieves = {}
         # write(str(dir(view.viewer)))
 
     def get_degrees(self, view: GameView) -> list:
@@ -171,44 +174,30 @@ class AI:
     def police_count_all(self, view: GameView) -> int:
         pc = 0
         for vu in view.visible_agents:
-            if(vu.agent_type == AgentType.POLICE and vu.team != view.viewer.team):
+            if(vu.agent_type % 2 == 1 and vu.team != view.viewer.team):
                 pc += 1
         pc += 1
         return pc
 
-    def get_opponent_polices_nodes(self, view: GameView) -> list:
-        polices_nodes = []
+    def get_units(self, view:GameView, agent_type:AgentType, team: str, return_type: str): #team == true : ours #
+        results = []
+        # write("test")
+        # write("test " + str(view.viewer.agent_type) + str([v.agent_type for v in view.visible_agents]))
         for vu in view.visible_agents:
-            if(vu.agent_type == AgentType.POLICE and vu.team != view.viewer.team):
-                polices_nodes.append(vu.node_id)
-        return polices_nodes
+        # write(f'{vu.agent_type}')
+            if team == "same" and vu.team == view.viewer.team and vu.agent_type % 2 == agent_type % 2 and not vu.is_dead:
+                if return_type == "node":
+                    results.append(vu.node_id)
+                else:
+                    results.append(vu.id)
 
-    def get_polices_nodes(self, view: GameView) -> list:
-        polices_nodes = []
-        for vu in view.visible_agents:
-            if(vu.agent_type == AgentType.POLICE and vu.team == view.viewer.team):
-                polices_nodes.append(vu.node_id)
-        return polices_nodes
+            if team == "opp" and vu.team != view.viewer.team and vu.agent_type % 2== agent_type % 2 and not vu.is_dead:
+                if return_type == "node":
+                    results.append(vu.node_id)
+                else:
+                    results.append(vu.id)
 
-    def get_thief_nodes(self,view: GameView, out_team:bool = True) -> list:
-        thief_nodes = []
-        # write(str([a.agent_type.name for a in view.visible_agents]))
-        for vu in view.visible_agents:
-            if out_team:
-                if(vu.agent_type == AgentType.THIEF and vu.team == view.viewer.team):
-                    thief_nodes.append(vu.node_id)
-            else:
-                if(vu.agent_type == AgentType.THIEF and vu.team != view.viewer.team):
-                    thief_nodes.append(vu.node_id)
-        return thief_nodes
-
-    def get_ours_polices_ids(self, view: GameView) -> list:
-        polices_ids = []
-        for vu in view.visible_agents:
-            write(str(vu.agent_type))
-            if(vu.agent_type == AgentType.POLICE and vu.team == view.viewer.team):
-                polices_ids.append(vu.id)
-        return polices_ids
+        return results
 
     def police_count_node(self, node_id, team, view: GameView) -> int:
         pc = 0
@@ -216,7 +205,7 @@ class AI:
             if (
                 not vu.is_dead and
                 vu.node_id == node_id and
-                vu.agent_type == AgentType.POLICE and
+                vu.agent_type % 2 == 1 and
                 vu.team == team
             ):
                 pc += 1
@@ -228,7 +217,7 @@ class AI:
             if (
                 not vu.is_dead and
                 vu.node_id == node_id and
-                vu.agent_type == AgentType.THIEF and
+                vu.agent_type % 2 == 0 and
                 vu.team == team
             ):
                 tc += 1
@@ -236,20 +225,20 @@ class AI:
 
     def isThiefin(self, node_id, view: GameView) -> bool:
         for t in view.visible_agents:
-            if t.agent_type == AgentType.THIEF and self.view.viewer.team == t.team and t.node_id == node_id:
+            if t.agent_type % 2 == 0 and self.view.viewer.team == t.team and t.node_id == node_id:
                 return True
         return False
 
     def isPolicein(self, node_id, view: GameView, same_team: bool = False) -> bool:
         for t in view.visible_agents:
             if same_team:
-                if t.agent_type == AgentType.POLICE and self.view.viewer.team == t.team and t.node_id == node_id:
+                if t.agent_type % 2== 1 and self.view.viewer.team == t.team and t.node_id == node_id:
                     return True
             else:
-                if t.agent_type == AgentType.POLICE and self.view.viewer.team != t.team and t.node_id == node_id:
+                if t.agent_type % 2 == 1 and self.view.viewer.team != t.team and t.node_id == node_id:
                     return True
         return False
-    
+
     def thief_move_ai(self, view: GameView) -> int:
         current_node = view.viewer.node_id
         nodes_count = len(view.config.graph.nodes)
@@ -262,31 +251,32 @@ class AI:
             self.floyd_warshall_matrix = floyd_warshall(
                 view.config.graph.paths, nodes_count)
 
-        # TODO: dozd az police door she
+        #dozd az dozd door beshe
         min_visible = min(view.config.visible_turns)
         if view.turn.turn_number < min_visible:
             adjs_mean = {}
             adj_array = self.get_adjacents(current_node,view)
             adj_array.append(current_node)
             for adj in adj_array:
-
                 adj_distances = {}
-                adj_nodes = self.get_thief_nodes(view)
-                write(f'{adj_nodes=}')
+                # adj_nodes = self.get_thief_nodes(view)
+                adj_nodes = self.get_units(view, 0, "same", "node")
+                # write(f'{adj_nodes=}')
                 for tn in adj_nodes:
                     adj_distances[tn] = self.floyd_warshall_matrix[adj][tn]
                 if adj_distances:
-                    adjs_mean[adj] = math.min(list(adj_distances.values())) #TODO: clean
+                    adjs_mean[adj] = min(list(adj_distances.values())) #TODO: clean
             
             max_distance = max(adjs_mean.values())
             
             move_to =[ key for key, value in adjs_mean.items() if value == max_distance]
-            write(f'{adjs_mean=}, {move_to=}')
+            # write(f'{adjs_mean=}, {move_to=}')
             return random.choice(move_to)
             
         police_distances = {}
         
-        opponent_polices_nodes = self.get_opponent_polices_nodes(view)
+        # opponent_polices_nodes = self.get_opponent_polices_nodes(view)
+        opponent_polices_nodes = self.get_units(view, 1, "opp", "node")
         for police_node in opponent_polices_nodes:
             police_distances[police_node] = self.floyd_warshall_matrix[current_node][police_node]
 
@@ -298,7 +288,7 @@ class AI:
         adjacents = []
         if shortest_dist <  max(police_distances.values()) // 2:
             adjacents = self.get_adjacents(current_node, view)
-            # write(f' max dist from police :{max(police_distances.values()) // 2}')
+            
         else:
             flag = False
             flag2 = False
@@ -317,9 +307,22 @@ class AI:
             nearest_police_to_adjacents[adj_id] = min([self.floyd_warshall_matrix[adj_id][p] for p in opponent_polices_nodes])
         
         furthest_dist_to_police = -1
+    
         for p in nearest_police_to_adjacents.keys():
-            if nearest_police_to_adjacents[p] > furthest_dist_to_police and not self.isPolicein(p, view):
-                furthest_dist_to_police = nearest_police_to_adjacents[p]
+            if view.viewer.agent_type == 3:
+                if view.viewer.team == 0:
+                    if nearest_police_to_adjacents[p] > furthest_dist_to_police and self.police_count_node(p, 1, view) < 2 :
+                        #HANDLE BATMAN
+                        furthest_dist_to_police = nearest_police_to_adjacents[p]
+                else:
+                    if nearest_police_to_adjacents[p] > furthest_dist_to_police and self.police_count_node(p, 0, view) < 2:
+                        furthest_dist_to_police = nearest_police_to_adjacents[p]
+                
+            else:
+                if nearest_police_to_adjacents[p] > furthest_dist_to_police and not self.isPolicein(p, view):
+                    furthest_dist_to_police = nearest_police_to_adjacents[p]
+        
+
 
         furthest_adjacents = [
             k for k, v in nearest_police_to_adjacents.items() if v == furthest_dist_to_police]
@@ -360,25 +363,65 @@ class AI:
             
             return move_to
     
+    def send_thieves(self, view ,thieves):
+        thief_to_police = {}
+        for t in thieves:
+            thief_to_police[t] = self.floyd_warshall_matrix[t][view.viewer.node_id]
+
+        idk = [key for key,value in thief_to_police.items() if value == min(list(thief_to_police.values()))]
+        idk = bin(random.choice(idk))
+        bin_t = idk[2:]
+        while bin_t[0] == '0':
+            bin_t = bin_t[1:]
+        if not bin_t in self.receive_thief(view): 
+            self.phone.send_message(bin_t)
+
+    def receive_thief(self, view):
+        results = []
+        flag = False
+        
+        # for b in view.chat_box:
+        for t in range(self.phone.last_index, len(view.chat_box)):
+            b = view.chat_box[t]
+            flag = True
+            results.append(int(b.text, 2))
+        self.phone.last_index = len(view.chat_box)
+        
+        write(f'{results=}, {self.phone.last_index=}')
+        return results
+
     def find_target_police(self, view: GameView):
+        #self.phone.send_message("1010")
+        self.visible_thieves = self.get_units(view, 0, "opp", "node")
+        thieves = self.get_units(view, 0, "opp", "node")
+        if thieves:
+            self.send_thieves(view, thieves)
+
+        self.visible_thieves.extend(self.receive_thief(view))
+        self.visible_thieves = list(set(self.visible_thieves))
+        # write(str(self.visible_thieves) + " =visible_thieves")
+
         current_node = view.viewer.node_id
 
-        thieves_nodes = [thief.node_id for thief in view.visible_agents
-                         if (thief.agent_type == AgentType.THIEF and
-                             thief.team != view.viewer.team and
-                             not thief.is_dead)]
+        # thieves_nodes = [thief.node_id for thief in view.visible_agents
+        #                  if (thief.agent_type == 0 and
+        #                      thief.team != view.viewer.team and
+        #                      not thief.is_dead)]
 
         for u in view.visible_agents:
-            if u.agent_type == AgentType.JOKER and view.viewer.agent_type == AgentType.BATMAN:
+            if u.agent_type == 3 and view.viewer.agent_type == 2:
                 return u.node_id
 
-        if view.turn.turn_number in view.config.visible_turns:
+        # if view.turn.turn_number in view.config.visible_turns:
+        if self.visible_thieves:
             fwarshal_mat = self.floyd_warshall_matrix
             move_to = []
             thief_to_mean_police = {}
             
-            for node_id in thieves_nodes:
-                thief_to_mean_police[node_id] = np.mean([fwarshal_mat[node_id][p] for p in self.get_polices_nodes(view)])
+            for node_id in self.visible_thieves:
+                # thief_to_mean_police[node_id] = np.mean([fwarshal_mat[node_id][p] for p in self.get_polices_nodes(view)])
+                thief_to_mean_police[node_id] = np.mean([fwarshal_mat[node_id][p] for p in self.get_units(view, 1, "same", "node")])
+
 
             min_mean = min(list(thief_to_mean_police.values()))
             move_to = [key for key, value in thief_to_mean_police.items() if value == min_mean ]
@@ -390,7 +433,8 @@ class AI:
             return random.choice(move_to)
         else:
             if self.police_target is None:
-                polices = self.get_ours_polices_ids(view)
+                # polices = self.get_ours_polices_ids(view)
+                polices = self.get_units(view, 1, "same", "id")
                 polices = sorted(polices)
 
                 nexts = []
@@ -437,15 +481,8 @@ class AI:
 
         self.police_target = self.find_target_police(view)
 
-        polices_in = []
-        for vu in view.visible_agents:
-            if (
-                vu.node_id == current_node and
-                vu.agent_type == AgentType.POLICE and
-                vu.team == view.viewer.team
-            ):
-                polices_in.append(vu.id)
-    
+        polices_in = self.get_units(view, 1, "same", "id")
+
         polices_in = sorted(polices_in)    
 
         path = []
@@ -483,21 +520,3 @@ class AI:
 
 
             return target
-
-        # h = {}  # h(x) = (cost * pr_police) / (pr_thieves * degree)
-        # h[current_node] = self.pr_theives(current_node, "opp", view)
-        # for adj_id in range(1, nodes_count+1):
-        #     h[adj_id] = INF
-        #     if self.cost[current_node][adj_id] != INF and adj_id != current_node:
-        #         h[adj_id] = self.pr_theives(adj_id, "opp", view)
-
-        # min_h = min(h.values())
-        # move_to = current_node
-        # if min_h != INF:
-        #     min_nodes = [k for k, v in h.items() if v == min_h]
-        #     move_to = random.choice(min_nodes)
-
-        # write("Police: " + str(h))
-        # write("Police with id " + str(view.viewer.id) + " in node " +
-        #     str(current_node) + " move to " + str(move_to))
-        # return move_to
